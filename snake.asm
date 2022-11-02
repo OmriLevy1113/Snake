@@ -386,7 +386,7 @@ right:
 	push bx ; pass by reference.
 	push si ; pass by value.
 	push di ; pass by value.
-	call move_right ; calls the procedure move right if al = d.
+	call move_right ;  calls the procedure move right if al = d.
 	pop di
 	pop si
 	pop bx
