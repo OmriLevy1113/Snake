@@ -1,2 +1,6 @@
 *.obj
 *.bat
+*.exe
+!snake.exe
+*.OVL
+*.map

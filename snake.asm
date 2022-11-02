@@ -323,7 +323,8 @@ proc delete_last_star
 	mov si,[snake_length]
 	mov bx,[position_head]
 	shl si,1
-	mov di,bx+si
+	add di, bx
+	add di, si
 	mov ah,0
 	mov al, ' '
 	mov [es:di],ax
