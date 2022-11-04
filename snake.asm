@@ -2,10 +2,10 @@ IDEAL
 MODEL small
 STACK 100h
 DATASEG
-snake_length dw 3 ; the starter length of the snake.
-key dw 'a' ; first key.
-line_position dw 40*2 ; starter head position in the line.
-position_head dw (12*80+40)*2, (12*80+40)*2 + 2, (12*80+40)*2 + 4; stars list.
+	snake_length dw 1							; the starter length of the snake.
+	key dw 'a' 									; first key.
+	line_position dw 40*2						; starter head position in the line.
+	position_head dw (12*80+40)*2, 3999 dup(?)	; stars list.
 CODESEG
 ; this procedure doesn't get anything.
 ; this procedure doesn't return anything.
@@ -14,10 +14,10 @@ proc clear
     push ax
 	push bx
 	push cx
-    mov cx,25*80*2;number of times the loop runs.
-    xor bx, bx
-  	mov ah,0;color.
-	mov al,' ';shape.
+    mov cx,25*80*2	;number of times the loop runs.
+    xor bx,bx		; bx=0.
+  	mov ah,0		;color.
+	mov al,' '		;shape.
 lop_clear:
 	mov [es:bx],ax
 	add bx, 2
@@ -27,7 +27,7 @@ lop_clear:
 	pop ax
 	ret 
 endp clear
-; this procedure gets: key [bp+4], head postion in line [bp+6], head position [bp+8].
+; this procedure gets: key [bp+6], head postion in line [bp+4], head position [bp+8].
 ; this procedure returns: the new head postion in line, the new key, the new head position.
 ; this procedure moves the snake left.
 proc move_left
@@ -38,44 +38,38 @@ proc move_left
 	push di
 	push dx
 	push si
+	push cx
 	mov di,[bp+4]
 	cmp di,0 ; checks if the snake got to the border if he got there exit move left.
 	je exit_move_left
-	mov si,[bp+6]
-	cmp si,'d'  ; checks if the the last key was d if  si = d exit move left.
+	mov dx,[bp+6]
+	cmp dx,'d'  ; checks if the the last key was d if  si = d exit move left.
 	je exit_move_left
-	mov si,'a'
-	mov ah,0
-	mov al,' '
-	mov bx,[bp+8]
-	add bx,4
-	mov di,[bx]
-	mov [es:di],ax ; delete last star.
-	mov di,[bp+8]
-	add di,2
-	mov dx,[word ptr di]
-	mov [word ptr bx],dx
+	mov dx,'a'
+	push bx
+	push offset snake_length
+	call delete_last_star ; delete last star.
 	mov ah,2 ; color.
 	mov al,219 ; shape.
-	mov di,[bx]
-	mov [es:di],ax ; move the value of the second star to the last star.
 	mov bx,[bp+8]
-	add bx,2
-	mov di,[bp+8]
-	mov dx,[word ptr di]
-	mov [word ptr bx],dx
-	mov di,[bx]
-	mov [es:di],ax ; move the value of the first star to the second star.
-	mov bx,[bp+8]
+	mov cx,[snake_length]
+	mov si,cx
+	add si,cx
+loop_move_left:
+	mov di,[bx+si-2]
+	mov [bx+si],di
+	sub si,2
+	loop loop_move_left
 	sub [word ptr bx],2
 	mov di,[bx]
-	mov [es:di],ax ; moves the head to the new location.
+	mov [es:di],ax 
 	mov di,[bp+4]
 	sub di,2
 exit_move_left:
 	mov [bp+4],di ; move the new head location in line to the stack segment.
-	mov [bp+6],si ; move the new key to the stack segment.
+	mov [bp+6],dx ; move the new key to the stack segment.
 	mov [bp+8],bx ; move the new head location to the stack segment.
+	pop cx
 	pop si
 	pop dx
 	pop di
@@ -84,7 +78,7 @@ exit_move_left:
 	pop bp
 	ret 
 endp move_left
-; this procedure gets: key [bp+4], head postion in line, [bp+6] head position [bp+8].
+; this procedure gets: key [bp+6], head postion in line[bp+4], head position [bp+8].
 ; this procedure returns: the new head postion in line, the new key, the new head position.
 ; this procedure moves the snake right.
 proc move_right
@@ -95,44 +89,38 @@ proc move_right
 	push di
 	push dx
 	push si
+	push cx
 	mov di,[bp+4]
 	cmp di,2*80-2 ; checks if the snake got to the border if he got there exit move right.
 	je exit_move_right
-	mov si,[bp+6]
-	cmp si,'a' ; checks if the the last key was a if  si = a exit move right.
+	mov dx,[bp+6]
+	cmp dx,'a' ; checks if the the last key was a if  si = a exit move right.
 	je exit_move_right
-	mov si,'d'
-	mov ah,0
-	mov al,' '
+	mov dx,'d'
+	push bx
+	push offset snake_length
+	call delete_last_star ; delete last star.
 	mov bx,[bp+8]
-	add bx,4
-	mov di,[bx]
-	mov [es:di],ax ; delete last star.
-	mov di,[bp+8]
-	add di,2
-	mov dx,[word ptr di]
-	mov [word ptr bx],dx
+	mov cx,[snake_length]
+	mov si,cx
+	add si,cx
+loop_move_right:
+	mov di,[bx+si-2]
+	mov [bx+si],di
+	sub si,2
+	loop loop_move_right
 	mov ah,2 ; color.
 	mov al,219 ; shape.
-	mov di,[bx]
-	mov [es:di],ax ; move the value of the second star to the last star.
-	mov bx,[bp+8]
-	add bx,2
-	mov di,[bp+8]
-	mov dx,[word ptr di]
-	mov [word ptr bx],dx
-	mov di,[bx]
-	mov [es:di],ax ; move the value of the first star to the second star.
-	mov bx,[bp+8]
 	add [word ptr bx],2
 	mov di,[bx]
-	mov [es:di],ax ; moves the head to the new location.
+	mov [es:di],ax 
 	mov di,[bp+4]
 	add di,2
 exit_move_right:
 	mov [bp+4],di ; move the new head location in line to the stack segment.
-	mov [bp+6],si ; move the new key to the stack segment.
+	mov [bp+6],dx ; move the new key to the stack segment.
 	mov [bp+8],bx ; move the new head location to the stack segment.
+	pop cx
 	pop si
 	pop dx
 	pop di
@@ -152,41 +140,35 @@ proc move_down
 	push di
 	push dx
 	push si
-	mov si,[bp+4]
-	cmp si,'w' ; checks if the the last key was w if  si = w exit move down.
+	push cx
+	mov dx,[bp+4]
+	cmp dx,'w' ; checks if the the last key was w if  si = w exit move down.
 	je exit_move_down
-	mov si,'s'
+	mov dx,'s'
 	mov bx,[bp+6]
 	cmp [word ptr bx],2*25*80-162 ; checks if the snake got to the border if he got there exit move down.
 	ja exit_move_down
-	mov ah,0
-	mov al,' '
+	push bx
+	push offset snake_length
+	call delete_last_star ; delete last star.
 	mov bx,[bp+6]
-	add bx,4
-	mov di,[bx]
-	mov [es:di],ax ; delete last star.
-	mov di,[bp+6]
-	add di,2
-	mov dx,[di]
-	mov [word ptr bx],dx
-	mov di,[bx]
+	mov cx,[snake_length]
+	mov si,cx
+	add si,cx
+loop_move_down:
+	mov di,[bx+si-2]
+	mov [bx+si],di
+	sub si,2
+	loop loop_move_down
 	mov ah,2 ; color.
 	mov al,219 ; shape.
-	mov [es:di],ax ; move the value of the second star to the last star.
-	mov bx,[bp+6]
-	add bx,2
-	mov di,[bp+6]
-	mov dx,[di]
-	mov [word ptr bx],dx
+	add [word ptr bx],80*2 
 	mov di,[bx]
-	mov [es:di],ax ; move the value of the first star to the second star.
-	mov bx,[bp+6]
-	add [word ptr bx],80*2
-	mov di,[bx]
-	mov [es:di],ax ; moves the head to the new location.
+	mov [es:di],ax 
 exit_move_down:
-	mov [bp+4],si ; move the new key to the stack segment.
+	mov [bp+4],dx ; move the new key to the stack segment.
 	mov [bp+6],bx ; move the new head location to the stack segment.
+	pop cx
 	pop si
 	pop dx
 	pop di
@@ -195,7 +177,7 @@ exit_move_down:
 	pop bp
 	ret 
 endp move_down
-; this procedure gets: key [bp+4], head position [bp+6].
+; this procedure gets: key [bp+4], offset head position [bp+6].
 ; this procedure returns: the new key, the new head position.
 ; this procedure moves the snake up.
 proc move_up
@@ -206,41 +188,35 @@ proc move_up
 	push di
 	push dx
 	push si
-	mov si,[bp+4]
-	cmp si,'s' ; checks if the the last key was s if  si = s exit move up.
+	push cx
+	mov dx,[bp+4]
+	cmp dx,'s' ; checks if the the last key was s if  si = s exit move up.
 	je exit_move_up
-	mov si,'w'
+	mov dx,'w'
 	mov bx,[bp+6]
 	cmp [word ptr bx],79*2 ; checks if the snake got to the border if he got there exit move up.
 	jna exit_move_up
-	mov ah,0
-	mov al,' '
+	push bx
+	push offset snake_length
+	call delete_last_star ; delete last star.
+	mov cx,[snake_length]
+	mov si,cx
+	add si,cx
+loop_move_up:
+	mov di,[bx+si-2]
+	mov [bx+si],di
+	sub si,2
+	loop loop_move_up
 	mov bx,[bp+6]
-	add bx,4
-	mov di,[bx]
-	mov [es:di],ax ; delete last star.
-	mov di,[bp+6]
-	add di,2
-	mov dx,[di]
-	mov [word ptr bx],dx
-	mov di,[bx]
 	mov ah,2 ; color.
 	mov al,219 ; shape.
-	mov [es:di],ax ; move the value of the second star to the last star.
-	mov bx,[bp+6]
-	add bx,2
-	mov di,[bp+6]
-	mov dx,[di]
-	mov [word ptr bx],dx
-	mov di,[bx]
-	mov [es:di],ax ; move the value of the first star to the second star.
-	mov bx,[bp+6]
 	sub [word ptr bx],80*2 
 	mov di,[bx]
-	mov [es:di],ax ; moves the head to the new location.
+	mov [es:di],ax 
 exit_move_up:
-	mov [bp+4],si ; move the new key to the stack segment.
+	mov [bp+4],dx ; move the new key to the stack segment.
 	mov [bp+6],bx ; move the new head location to the stack segment.
+	pop cx
 	pop si
 	pop dx
 	pop di
@@ -258,10 +234,6 @@ proc draw_snake
 	mov ah,2 ; color.
 	mov al,219 ; shape.
 	mov di,(12*80+40)*2; first star location.
-	mov [es:di],ax
-	add di,2 ; second star location.
-	mov [es:di],ax
-	add di,2 ;third star location
 	mov [es:di],ax
 	pop di
 	pop ax
@@ -341,6 +313,38 @@ delay_dec:
 	pop cx
     ret
 endp delay
+;this procedure gets:
+;[bp+4] == offset of snake length.
+;[bp+6] == offset of snake head location.
+;this procedure dosen't return anything.
+;this procedure delete the last star of the snake.
+proc delete_last_star
+	push bp
+	mov bp,sp
+	push bx
+	push cx
+	push ax
+	push di
+	push bx
+;;;;;;;;;;;;;;;;;;;;;;;	
+	mov si,[bp+4]
+	mov di,[bp+6]
+	mov bx,[si]
+	add di, bx
+	add di, bx
+	mov di, [di]
+	mov ah,0
+	mov al,' '
+	mov [es:di],ax
+;;;;;;;;;;;;;;;;;;;;;;;
+	pop bx
+	pop di
+	pop ax
+	pop cx
+	pop bx
+	pop bp
+	ret 4
+	endp delete_last_star
 start:
 	mov ax, @data
 	mov ds, ax
@@ -350,17 +354,17 @@ start:
 	call clear ; clear the screen.
 	call draw_snake ; draw the snake.
 	call generate_first_apple ; draw the first apple.
-	mov bx,offset position_head ; bx = offset position head.
 	mov di,[line_position] ; di = 80.
 	mov si,[key] ; si = a.
-	mov dx,((12*80+40)*2)-20 ; first apple location.
+	mov dx,((12*80+40)*2)-20; first apple location.
+	mov bx,offset position_head
 main_lop:
-	mov ah,1
-	int 16h
-	jz main_lop_continue
+	 mov ah,1
+	 int 16h
+	 jz main_lop_continue
 	mov ah,0
 	int 16h
- main_lop_continue:
+main_lop_continue:
 	cmp al,'q'
 	je exit
 	call delay
@@ -390,7 +394,7 @@ right:
 	push bx ; pass by reference.
 	push si ; pass by value.
 	push di ; pass by value.
-	call move_right ; calls the procedure move right if al = d.
+	call move_right ;  calls the procedure move right if al = d.
 	pop di
 	pop si
 	pop bx
