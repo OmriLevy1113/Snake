@@ -7,13 +7,15 @@ DATASEG
 	line_position dw 40*2						; starter head position in the line.
 	position_head dw (12*80+40)*2, 3999 dup(?)	; stars list.
 CODESEG
-; this procedure doesn't get anything.
-; this procedure doesn't return anything.
-; this procedure clear and change the screen to black.
+;this procedure doesn't get anything.
+;this procedure doesn't return anything.
+;this procedure clear and change the screen to black.
 proc clear
+;;;;;;;;;;;;;;;;;;;;;;;
     push ax
 	push bx
 	push cx
+;;;;;;;;;;;;;;;;;;;;;;;
     mov cx,25*80*2	;number of times the loop runs.
     xor bx,bx		; bx=0.
   	mov ah,0		;color.
@@ -22,9 +24,11 @@ lop_clear:
 	mov [es:bx],ax
 	add bx, 2
 	loop lop_clear
+;;;;;;;;;;;;;;;;;;;;;;;
 	pop cx
 	pop bx
 	pop ax
+;;;;;;;;;;;;;;;;;;;;;;;
 	ret 
 endp clear
 ;this procedure gets:
@@ -402,7 +406,13 @@ proc delete_last_star
 	pop bp
 ;;;;;;;;;;;;;;;;;;;;;;;
 	ret 4
-	endp delete_last_star
+endp delete_last_star
+proc check_if_the_key_is_legal
+	push bp
+	mov bp,sp
+	
+	ret
+endp check_if_the_key_is_legal
 start:
 	mov ax, @data
 	mov ds, ax
@@ -469,7 +479,7 @@ left:
 	jmp main_lop
 ; --------------------------------end main------------------------------------------;
 exit:
-	call clear
+	call clear					; clear the screen at the end.
 	mov ax, 4c00h
 	int 21h
 END start
