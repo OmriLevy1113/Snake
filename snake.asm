@@ -286,7 +286,7 @@ proc delay
 ;;;;;;;;;;;;;;;;;;;;;;;	
 delay_rep:
     push cx  
-    mov cx, 08777H	; loop times.
+    mov cx, 0F888H	; loop times.
 delay_dec:
     dec cx 
     jnz delay_dec
@@ -411,25 +411,25 @@ border_down:
 	jb border_right
 	mov bx,'q'
 border_right:
-	cmp bl,'d'		; checks if the key that was pressed is 'd'.
+	cmp bl,'d'				; checks if the key that was pressed is 'd'.
 	jne border_left
 	mov ax,[si]
 	mov si,160
 	div si
-	cmp dx,158		; if the head reached the right border bx = q.
+	cmp dx,158				; if the head reached the right border bx = q.
 	jne border_left
-	mov bx,'q'
-border_left:
-	cmp bl,'a'		; checks if the key that was pressed is 'a'.
+	mov bx,'q'	
+border_left:	
+	cmp bl,'a'				; checks if the key that was pressed is 'a'.
 	jne exit_borders
 	mov ax,[si]
 	mov si,160
 	div si
-	cmp dx,0		; if the head reached the left border bx = q.
+	cmp dx,0				; if the head reached the left border bx = q.
 	jne exit_borders
 	mov bx,'q'
 exit_borders:
-	mov [bp+6],bx	; moves bx into the stack segment.
+	mov [bp+6],bx			; moves bx into the stack segment.
 ;;;;;;;;;;;;;;;;;;;;;;;
 	pop si
 	pop dx
