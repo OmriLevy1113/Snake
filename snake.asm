@@ -4,7 +4,6 @@ STACK 100h
 DATASEG
 	snake_length dw 1							; the starter length of the snake.
 	key dw 'a' 									; first key.
-	line_position dw 40*2						; starter head position in the line.
 	position_head dw (12*80+40)*2, 3999 dup(?)	; stars list.
 CODESEG
 ;this procedure doesn't get anything.
@@ -32,11 +31,8 @@ lop_clear:
 	ret 
 endp clear
 ;this procedure gets:
-;[bp+4] == the head location in a line.
-;[bp+8] == offset of the snake head.
-;this procedure returns:
-;the new head location in a line.
-;the new head position.
+;[bp+4] == offset of the snake head.
+;this procedure doesn't return anything.
 ;this procedure moves the snake left.
 proc move_left
 ;;;;;;;;;;;;;;;;;;;;;;;
@@ -44,19 +40,15 @@ proc move_left
 	mov bp,sp
 	push bx
 	push ax
-	push di
 	push si
 	push cx
 ;;;;;;;;;;;;;;;;;;;;;;;
-	mov di,[bp+4]
-	cmp di,0					; checks if the snake got to the border if he got there exit move left.
-	je exit_move_left
 	push bx
 	push offset snake_length
 	call delete_last_star		; delete last star.
 	mov ah,2 ; color.
 	mov al,219 ; shape.
-	mov bx,[bp+6]
+	mov bx,[bp+4]
 	mov cx,[snake_length]
 	mov si,cx
 	add si,cx
@@ -68,27 +60,18 @@ loop_move_left:
 	sub [word ptr bx],2
 	mov di,[bx]
 	mov [es:di],ax 
-	mov di,[bp+4]
-	sub di,2
-exit_move_left:
-	mov [bp+4],di				; move the new head location in line to the stack segment.
-	mov [bp+6],bx				; move the new head location to the stack segment.
 ;;;;;;;;;;;;;;;;;;;;;;;
 	pop cx
 	pop si
-	pop di
 	pop ax
 	pop bx
 	pop bp
 ;;;;;;;;;;;;;;;;;;;;;;;
-	ret 
+	ret 2
 endp move_left
 ;this procedure gets:
-;[bp+4] == the head location in a line.
-;[bp+6] == offset of the snake head.
-;this procedure returns:
-;the new head location in a line.
-;the new head position.
+;[bp+4] == offset of the snake head.
+;this procedure doesn't return anything.
 ;this procedure moves the snake right.
 proc move_right
 ;;;;;;;;;;;;;;;;;;;;;;;	
@@ -96,17 +79,13 @@ proc move_right
 	mov bp,sp
 	push bx
 	push ax
-	push di
 	push si
 	push cx
 ;;;;;;;;;;;;;;;;;;;;;;;	
-	mov di,[bp+4]
-	cmp di,2*80-2				; checks if the snake got to the border if he got there exit move right.
-	je exit_move_right
 	push bx
 	push offset snake_length
 	call delete_last_star		; delete last star.
-	mov bx,[bp+6]
+	mov bx,[bp+4]
 	mov cx,[snake_length]
 	mov si,cx
 	add si,cx
@@ -120,25 +99,18 @@ loop_move_right:
 	add [word ptr bx],2
 	mov di,[bx]
 	mov [es:di],ax 
-	mov di,[bp+4]
-	add di,2
-exit_move_right:
-	mov [bp+4],di				; move the new head location in line to the stack segment.
-	mov [bp+6],bx				; move the new head location to the stack segment.
 ;;;;;;;;;;;;;;;;;;;;;;;	
 	pop cx
 	pop si
-	pop di
 	pop ax
 	pop bx
 	pop bp
 ;;;;;;;;;;;;;;;;;;;;;;;	
-	ret 
+	ret 2
 endp move_right
 ; this procedure gets:
 ;[bp+4] == offset of the snake head.
-;this procedure returns:
-;the new head position.
+;this procedure doesn't return anything.
 ;this procedure moves the snake down.
 proc move_down
 ;;;;;;;;;;;;;;;;;;;;;;;	
@@ -154,7 +126,6 @@ proc move_down
 	push bx
 	push offset snake_length
 	call delete_last_star			; delete last star.
-	mov bx,[bp+4]
 	mov cx,[snake_length]
 	mov si,cx
 	add si,cx
@@ -168,7 +139,6 @@ loop_move_down:
 	add [word ptr bx],80*2 
 	mov di,[bx]
 	mov [es:di],ax 
-	mov [bp+4],bx					; move the new head location to the stack segment.
 ;;;;;;;;;;;;;;;;;;;;;;;	
 	pop cx
 	pop si
@@ -177,12 +147,11 @@ loop_move_down:
 	pop bx
 	pop bp
 ;;;;;;;;;;;;;;;;;;;;;;;	
-	ret 
+	ret 2
 endp move_down
 ;this procedure gets:
 ;[bp+4] == offset of the snake head.
-;this procedure returns: 
-;the new head position.
+;this procedure doesn't return anything.
 ;this procedure moves the snake up.
 proc move_up
 ;;;;;;;;;;;;;;;;;;;;;;;	
@@ -212,7 +181,6 @@ loop_move_up:
 	sub [word ptr bx],80*2 
 	mov di,[bx]
 	mov [es:di],ax 
-	mov [bp+4],bx					; move the new head location to the stack segment.
 ;;;;;;;;;;;;;;;;;;;;;;;	
 	pop cx
 	pop si
@@ -221,7 +189,7 @@ loop_move_up:
 	pop bx
 	pop bp
 ;;;;;;;;;;;;;;;;;;;;;;;	
-	ret 
+	ret 2
 endp move_up
 ;this procedure doesn't get anything.
 ;this procedure doesn't return anything.
@@ -412,6 +380,12 @@ exit_key:
 ;;;;;;;;;;;;;;;;;;;;;;;
 	ret 2
 endp check_if_the_key_is_legal
+;this procedure gets:
+;[bp+4] ==  the key that was just pressed.
+;[bp+6] == offset of the head location.
+;this procedure returns:
+; the key that was pressed and if the head reached the border it returns 'q'.
+;this procedure checks the borders of the screen.
 proc check_borders
 ;;;;;;;;;;;;;;;;;;;;;;;
 	push bp
@@ -419,31 +393,45 @@ proc check_borders
 	push bx
 	push ax
 	push dx
+	push si
 ;;;;;;;;;;;;;;;;;;;;;;;
-	mov ax,[bp+4]	; the key that was pressed.
-	mov bx,[bp+6]	; offset of the head location.
-	xor dx,dx
+	mov bx,[bp+4]			; the key that was pressed.
+	mov si,[bp+6]			; offset of the head location.
+	xor dx,dx				; dx = 0.
 border_up:
-	cmp al,'w'
+	cmp bl,'w'				; checks if the key that was pressed is 'w'.
 	jne border_down
-	cmp [word ptr bx],160
+	cmp [word ptr si],158	; if the head reached the up border bx = q.
 	ja border_down
-	mov ax,'q'
+	mov bx,'q'
 border_down:
-	cmp al,'s'
+	cmp bl,'s'				; checks if the key that was pressed is 's'.
 	jne border_right
-	cmp [word ptr bx],3840
+	cmp [word ptr si],3840	; if the head reached the down border bx = q.
 	jb border_right
-	mov ax,'q'
+	mov bx,'q'
 border_right:
-	cmp al,'d'
+	cmp bl,'d'		; checks if the key that was pressed is 'd'.
 	jne border_left
+	mov ax,[si]
+	mov si,160
+	div si
+	cmp dx,158		; if the head reached the right border bx = q.
+	jne border_left
+	mov bx,'q'
 border_left:
-	cmp al,'a'
+	cmp bl,'a'		; checks if the key that was pressed is 'a'.
 	jne exit_borders
+	mov ax,[si]
+	mov si,160
+	div si
+	cmp dx,0		; if the head reached the left border bx = q.
+	jne exit_borders
+	mov bx,'q'
 exit_borders:
-	mov [bp+6],ax
+	mov [bp+6],bx	; moves bx into the stack segment.
 ;;;;;;;;;;;;;;;;;;;;;;;
+	pop si
 	pop dx
 	pop ax
 	pop bx
@@ -460,7 +448,6 @@ start:
 	call clear 					; clear the screen.
 	call draw_snake 			; draw the snake.
 	call generate_first_apple	; draw the first apple.
-	mov di,[line_position]		; di = 80.
 	mov si,[key] 				; si = a.
 	mov dx,((12*80+40)*2)-20	; first apple location.
 	mov bx,offset position_head
@@ -492,40 +479,32 @@ up:
 	jnz down
 	cmp al,'w'
 	jnz down
-	push bx						; pass by value.
+	push offset position_head	; pass by reference.
 	call move_up				; calls the procedure move up if al = w.
-	pop bx
 	mov si,'w'					; the new key.
 down:
 	cmp cl,'s'
 	jne right
 	cmp al,'s'
 	jnz right
-	push bx						; pass by value.
+	push offset position_head	; pass by reference.
 	call move_down				; calls the procedure move down if al = s.
-	pop bx
 	mov si,'s'					; the new key.
 right:
 	cmp cl,'d'
 	jne left
 	cmp al,'d'
 	jnz left
-	push bx						; pass by value.
-	push di						; pass by value.
+	push offset position_head	; pass by reference.
 	call move_right				; calls the procedure move right if al = d.
-	pop di
-	pop bx
 	mov si,'d'					; the new key.
 left:
 	cmp cl,'a'
 	jne main_lop
 	cmp al,'a'
 	jnz main_lop
-	push bx						; pass by value.
-	push di						; pass by value.
+	push offset position_head	; pass by reference.
 	call move_left				; calls the procedure move left if al = a.
-	pop di
-	pop bx
 	mov si,'a'					; the new key.
 	jmp main_lop
 ; --------------------------------end main------------------------------------------;
