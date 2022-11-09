@@ -4,7 +4,7 @@ STACK 100h
 DATASEG
 	snake_length dw 1							; the starter length of the snake.
 	key dw 'a' 									; first key.
-	position_head dw (12*80+40)*2, 3999 dup(?)	; stars list.
+	position_head dw (12*80+40)*2, 3999 dup(?)	; snake parts list.
 CODESEG
 ;this procedure doesn't get anything.
 ;this procedure doesn't return anything.
@@ -43,12 +43,12 @@ proc move_left
 	push si
 	push cx
 ;;;;;;;;;;;;;;;;;;;;;;;
+	mov bx,[bp+4]
 	push bx
 	push offset snake_length
 	call delete_last_star		; delete last star.
 	mov ah,2 ; color.
 	mov al,219 ; shape.
-	mov bx,[bp+4]
 	mov cx,[snake_length]
 	mov si,cx
 	add si,cx
@@ -82,10 +82,10 @@ proc move_right
 	push si
 	push cx
 ;;;;;;;;;;;;;;;;;;;;;;;	
+	mov bx,[bp+4]
 	push bx
 	push offset snake_length
 	call delete_last_star		; delete last star.
-	mov bx,[bp+4]
 	mov cx,[snake_length]
 	mov si,cx
 	add si,cx
@@ -226,7 +226,7 @@ proc generate_random_apple
 	push dx
 ;;;;;;;;;;;;;;;;;;;;;;;	
 	mov si,[bp+4]			; the head location.
-	mov dx,[bp+6]			; the random number.
+	mov dx,[bp+6]			; the old random number.
 	cmp [word ptr si],dx	; checks if the head is in the apple location if he is generate new apple.
 	jnz exit_generate_random_apple
 return_random_apple:
@@ -286,7 +286,7 @@ proc delay
 ;;;;;;;;;;;;;;;;;;;;;;;	
 delay_rep:
     push cx  
-    mov cx, 0F888H	; loop times.
+    mov cx, 0D888H	; loop times.
 delay_dec:
     dec cx 
     jnz delay_dec
@@ -380,11 +380,11 @@ exit_key:
 ;;;;;;;;;;;;;;;;;;;;;;;
 	ret 2
 endp check_if_the_key_is_legal
-;this procedure gets:
-;[bp+4] ==  the key that was just pressed.
-;[bp+6] == offset of the head location.
+;this procedure recieves:
+;[bp+4] == the key that was just pressed.
+;[bp+6] == the offset of the head location.
 ;this procedure returns:
-; the key that was pressed and if the head reached the border it returns 'q'.
+;the key that was pressed and if the head reached the border it returns 'q'.
 ;this procedure checks the borders of the screen.
 proc check_borders
 ;;;;;;;;;;;;;;;;;;;;;;;
@@ -439,18 +439,117 @@ exit_borders:
 ;;;;;;;;;;;;;;;;;;;;;;;
 	ret 2
 endp check_borders
+proc check_hit
+;;;;;;;;;;;;;;;;;;;;;;;
+	push bp
+	mov bp,sp
+	push bx
+	push ax
+	push cx
+	push si
+;;;;;;;;;;;;;;;;;;;;;;;
+	mov bx,[bp+4]	;offset of snake head.
+	mov si,[bp+6]	;offset of snake length.
+	xor cx,cx
+	add cx,[si]
+	mov si,cx
+	add si,cx
+loop_check_hit:
+	mov di,[bx+si]
+	cmp [bx],di
+	je continue_check_hit
+	sub si,2
+	loop loop_check_hit
+	jmp end_check_hit
+continue_check_hit:
+	mov ax,'q'
+end_check_hit:
+	mov [bp+6],ax
+;;;;;;;;;;;;;;;;;;;;;;;
+	pop si
+	pop cx
+	pop ax
+	pop bx
+	pop bp
+;;;;;;;;;;;;;;;;;;;;;;;
+	ret 2
+endp check_hit
+;this procedure doesn't get anything.
+;this procedure doesn't return anything.
+;this procedure calls the starter procedures.
+proc main_lop_start
+	call clear 					; clear the screen.
+	call draw_snake 			; draw the snake.
+	call generate_first_apple	; draw the first apple.
+	ret
+endp main_lop_start
+;this procedure gets:
+;[bp+4] == offset of snake head.
+;[bp+6] == last random number.
+;[bp+8] == offset of snake length.
+;[bp+10] == last key pressed.
+;[bp+12] == the key that was just pressed.
+;this procedure returns:
+;the key that was just pressed.
+;the key that was last pressed.
+;the new random number.
+;this procedure runs the procedures that needs to be done before moving the snake.
+proc main_loop_continue
+;;;;;;;;;;;;;;;;;;;;;;;
+	push bp
+	mov bp,sp
+	push bx
+	push dx
+	push si
+	push ax
+	push cx
+	push di
+;;;;;;;;;;;;;;;;;;;;;;;
+	mov bx,[bp+4]
+	mov dx,[bp+6]
+	mov di,[bp+8]
+	mov si,[bp+10]
+	mov ax,[bp+12]
+	call delay
+	push dx						
+	push bx	
+	call generate_random_apple
+	pop dx 						
+	push si	
+	push ax					
+	call check_if_the_key_is_legal
+	pop cx
+	push bx
+	push ax						
+	call check_borders
+	pop ax
+	push di
+	push bx
+	call check_hit
+	pop ax
+	mov [bp+8],ax
+	mov [bp+10],cx
+	mov [bp+12],dx
+;;;;;;;;;;;;;;;;;;;;;;;
+	pop di
+	pop cx
+	pop ax
+	pop si
+	pop dx
+	pop bx
+	pop bp
+;;;;;;;;;;;;;;;;;;;;;;;
+	ret 4
+endp main_loop_continue
 start:
 	mov ax, @data
 	mov ds, ax
 ;-----------------------------------main-----------------------------------;
 	mov ax,0b800h
 	mov es,ax
-	call clear 					; clear the screen.
-	call draw_snake 			; draw the snake.
-	call generate_first_apple	; draw the first apple.
+	call main_lop_start
 	mov si,[key] 				; si = a.
 	mov dx,((12*80+40)*2)-20	; first apple location.
-	mov bx,offset position_head
 main_lop:
 	mov ah,1
 	int 16h
@@ -460,26 +559,21 @@ main_lop:
 main_lop_continue:
 	cmp al,'q'
 	je exit
-	call delay
-	push dx						; pass by value.
-	push bx						; pass by value.
-	call generate_random_apple
-	pop dx 						; the random number.
-	mov cx,ax
-	push si
-	push cx
-	call check_if_the_key_is_legal
-	pop cx
-	push bx
 	push ax
-	call check_borders
+	push si
+	push offset snake_length
+	push dx
+	push offset position_head
+	call main_loop_continue
 	pop ax
+	pop cx
+	pop dx
 up:
+	push offset position_head	; pass by reference.
 	cmp cl,'w'
 	jnz down
 	cmp al,'w'
 	jnz down
-	push offset position_head	; pass by reference.
 	call move_up				; calls the procedure move up if al = w.
 	mov si,'w'					; the new key.
 down:
@@ -487,7 +581,6 @@ down:
 	jne right
 	cmp al,'s'
 	jnz right
-	push offset position_head	; pass by reference.
 	call move_down				; calls the procedure move down if al = s.
 	mov si,'s'					; the new key.
 right:
@@ -495,7 +588,6 @@ right:
 	jne left
 	cmp al,'d'
 	jnz left
-	push offset position_head	; pass by reference.
 	call move_right				; calls the procedure move right if al = d.
 	mov si,'d'					; the new key.
 left:
@@ -503,13 +595,12 @@ left:
 	jne main_lop
 	cmp al,'a'
 	jnz main_lop
-	push offset position_head	; pass by reference.
 	call move_left				; calls the procedure move left if al = a.
 	mov si,'a'					; the new key.
 	jmp main_lop
 ; --------------------------------end main------------------------------------------;
 exit:
 	call clear					; clear the screen at the end.
-	mov ax, 4c00h
+	mov ax,4c00h
 	int 21h
 END start
