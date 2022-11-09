@@ -439,6 +439,12 @@ exit_borders:
 ;;;;;;;;;;;;;;;;;;;;;;;
 	ret 2
 endp check_borders
+;this procedure gets:
+;[bp+4] == offset of snake head.
+;[bp+6] == offset of snake length.
+;this procedure returns:
+;ax = 'q' if the snake hit himself.
+;this procedure checks if the snake it himself.
 proc check_hit
 ;;;;;;;;;;;;;;;;;;;;;;;
 	push bp
