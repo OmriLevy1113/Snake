@@ -286,7 +286,7 @@ proc delay
 ;;;;;;;;;;;;;;;;;;;;;;;	
 delay_rep:
     push cx  
-    mov cx, 0D888H	; loop times.
+    mov cx, 05888H	; loop times.
 delay_dec:
     dec cx 
     jnz delay_dec
@@ -308,7 +308,6 @@ proc delete_last_star
 	push bp
 	mov bp,sp
 	push bx
-	push cx
 	push ax
 	push di
 	push bx
@@ -326,7 +325,6 @@ proc delete_last_star
 	pop bx
 	pop di
 	pop ax
-	pop cx
 	pop bx
 	pop bp
 ;;;;;;;;;;;;;;;;;;;;;;;
@@ -508,7 +506,6 @@ proc main_loop_continue
 	push dx
 	push si
 	push ax
-	push cx
 	push di
 ;;;;;;;;;;;;;;;;;;;;;;;
 	mov bx,[bp+4]
@@ -524,7 +521,7 @@ proc main_loop_continue
 	push si	
 	push ax					
 	call check_if_the_key_is_legal
-	pop cx
+	pop ax
 	push bx
 	push ax						
 	call check_borders
@@ -533,19 +530,17 @@ proc main_loop_continue
 	push bx
 	call check_hit
 	pop ax
-	mov [bp+8],ax
-	mov [bp+10],cx
+	mov [bp+10],ax
 	mov [bp+12],dx
 ;;;;;;;;;;;;;;;;;;;;;;;
 	pop di
-	pop cx
 	pop ax
 	pop si
 	pop dx
 	pop bx
 	pop bp
 ;;;;;;;;;;;;;;;;;;;;;;;
-	ret 4
+	ret 6
 endp main_loop_continue
 start:
 	mov ax, @data
@@ -567,38 +562,29 @@ main_lop_continue:
 	je exit
 	push ax
 	push si
-	push offset snake_length
-	push dx
-	push offset position_head
+	push offset snake_length	; pass by reference.
+	push dx						; pass by value.
+	push offset position_head	; pass by reference.
 	call main_loop_continue
-	pop ax
-	pop cx
-	pop dx
+	pop ax											
+	pop dx						; the random number.
 up:
 	push offset position_head	; pass by reference.
-	cmp cl,'w'
-	jnz down
 	cmp al,'w'
 	jnz down
 	call move_up				; calls the procedure move up if al = w.
 	mov si,'w'					; the new key.
 down:
-	cmp cl,'s'
-	jne right
 	cmp al,'s'
 	jnz right
 	call move_down				; calls the procedure move down if al = s.
 	mov si,'s'					; the new key.
 right:
-	cmp cl,'d'
-	jne left
 	cmp al,'d'
 	jnz left
 	call move_right				; calls the procedure move right if al = d.
 	mov si,'d'					; the new key.
-left:
-	cmp cl,'a'
-	jne main_lop
+left:	
 	cmp al,'a'
 	jnz main_lop
 	call move_left				; calls the procedure move left if al = a.
