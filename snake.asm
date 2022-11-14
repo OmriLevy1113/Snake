@@ -15,10 +15,10 @@ proc clear
 	push bx
 	push cx
 ;;;;;;;;;;;;;;;;;;;;;;;
-    mov cx,25*80*2	;number of times the loop runs.
+    mov cx,25*80*2	; number of times the loop runs.
     xor bx,bx		; bx=0.
-  	mov ah,0		;color.
-	mov al,' '		;shape.
+  	mov ah,0		; color = black.
+	mov al,' '		; shape = space.
 lop_clear:
 	mov [es:bx],ax
 	add bx, 2
@@ -32,6 +32,7 @@ lop_clear:
 endp clear
 ;this procedure gets:
 ;[bp+4] == offset of the snake head.
+;[bp+6] == offset of the snake length.
 ;this procedure doesn't return anything.
 ;this procedure moves the snake left.
 proc move_left
@@ -44,12 +45,13 @@ proc move_left
 	push cx
 ;;;;;;;;;;;;;;;;;;;;;;;
 	mov bx,[bp+4]
+	mov di,[bp+6]
 	push bx
-	push offset snake_length
+	push di
 	call delete_last_star		; delete last star.
-	mov ah,2 ; color.
-	mov al,219 ; shape.
-	mov cx,[snake_length]
+	mov ah,2					; color = green.
+	mov al,219					; shape.
+	mov cx,[di]
 	mov si,cx
 	add si,cx
 loop_move_left:
@@ -67,10 +69,11 @@ loop_move_left:
 	pop bx
 	pop bp
 ;;;;;;;;;;;;;;;;;;;;;;;
-	ret 2
+	ret 4
 endp move_left
 ;this procedure gets:
 ;[bp+4] == offset of the snake head.
+;[bp+6] == offset of the snake length.
 ;this procedure doesn't return anything.
 ;this procedure moves the snake right.
 proc move_right
@@ -83,10 +86,11 @@ proc move_right
 	push cx
 ;;;;;;;;;;;;;;;;;;;;;;;	
 	mov bx,[bp+4]
+	mov di,[bp+6]
 	push bx
-	push offset snake_length
+	push di
 	call delete_last_star		; delete last star.
-	mov cx,[snake_length]
+	mov cx,[di]
 	mov si,cx
 	add si,cx
 loop_move_right:
@@ -106,10 +110,11 @@ loop_move_right:
 	pop bx
 	pop bp
 ;;;;;;;;;;;;;;;;;;;;;;;	
-	ret 2
+	ret 4
 endp move_right
 ; this procedure gets:
 ;[bp+4] == offset of the snake head.
+;[bp+6] == offset of the snake length.
 ;this procedure doesn't return anything.
 ;this procedure moves the snake down.
 proc move_down
@@ -123,10 +128,11 @@ proc move_down
 	push cx
 ;;;;;;;;;;;;;;;;;;;;;;;	
 	mov bx,[bp+4]
+	mov di,[bp+6]
 	push bx
-	push offset snake_length
+	push di
 	call delete_last_star			; delete last star.
-	mov cx,[snake_length]
+	mov cx,[di]
 	mov si,cx
 	add si,cx
 loop_move_down:
@@ -147,10 +153,11 @@ loop_move_down:
 	pop bx
 	pop bp
 ;;;;;;;;;;;;;;;;;;;;;;;	
-	ret 2
+	ret 4
 endp move_down
 ;this procedure gets:
 ;[bp+4] == offset of the snake head.
+;[bp+6] == offset of the snake length.
 ;this procedure doesn't return anything.
 ;this procedure moves the snake up.
 proc move_up
@@ -164,10 +171,11 @@ proc move_up
 	push cx
 ;;;;;;;;;;;;;;;;;;;;;;;	
 	mov bx,[bp+4]
+	mov di,[bp+6]
 	push bx
-	push offset snake_length
+	push di
 	call delete_last_star			; delete last star.
-	mov cx,[snake_length]
+	mov cx,[di]
 	mov si,cx
 	add si,cx
 loop_move_up:
@@ -189,7 +197,7 @@ loop_move_up:
 	pop bx
 	pop bp
 ;;;;;;;;;;;;;;;;;;;;;;;	
-	ret 2
+	ret 4
 endp move_up
 ;this procedure doesn't get anything.
 ;this procedure doesn't return anything.
@@ -237,7 +245,7 @@ return_random_apple:
 	mov bx,ax
 	mov ax,0b800h
 	mov es,ax
-	mov ah,2				; color = green.
+	mov ah,4				; color = red.
 	mov al,149				; shape = apple.
 	shl bx,1				; multiple the number by 2.
 	cmp bx,dx				; if the apple is in the same location as last one generate new number.
@@ -267,7 +275,7 @@ proc generate_first_apple
 	push ax
 	push bx
 ;;;;;;;;;;;;;;;;;;;;;;;	
-	mov ah,2					; color = green.
+	mov ah,4					; color = red.
 	mov al,149					; shape = apple.
 	mov bx,((12*80+40)*2)-20	; first apple location.
 	mov [es:bx],ax
@@ -286,7 +294,7 @@ proc delay
 ;;;;;;;;;;;;;;;;;;;;;;;	
 delay_rep:
     push cx  
-    mov cx, 05888H	; loop times.
+    mov cx, 06888H	; loop times.
 delay_dec:
     dec cx 
     jnz delay_dec
@@ -452,8 +460,8 @@ proc check_hit
 	push cx
 	push si
 ;;;;;;;;;;;;;;;;;;;;;;;
-	mov bx,[bp+4]	;offset of snake head.
-	mov si,[bp+6]	;offset of snake length.
+	mov bx,[bp+4]	; offset of snake head.
+	mov si,[bp+6]	; offset of snake length.
 	xor cx,cx
 	add cx,[si]
 	mov si,cx
@@ -569,6 +577,7 @@ main_lop_continue:
 	pop ax											
 	pop dx						; the random number.
 up:
+	push offset snake_length	; pass by reference.
 	push offset position_head	; pass by reference.
 	cmp al,'w'
 	jnz down
