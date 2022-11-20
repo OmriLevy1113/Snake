@@ -43,6 +43,7 @@ proc move_left
 	push ax
 	push si
 	push cx
+	push di
 ;;;;;;;;;;;;;;;;;;;;;;;
 	mov bx,[bp+4]
 	mov di,[bp+6]
@@ -63,6 +64,7 @@ loop_move_left:
 	mov di,[bx]
 	mov [es:di],ax 
 ;;;;;;;;;;;;;;;;;;;;;;;
+	pop di
 	pop cx
 	pop si
 	pop ax
@@ -84,6 +86,7 @@ proc move_right
 	push ax
 	push si
 	push cx
+	push di
 ;;;;;;;;;;;;;;;;;;;;;;;	
 	mov bx,[bp+4]
 	mov di,[bp+6]
@@ -104,6 +107,7 @@ loop_move_right:
 	mov di,[bx]
 	mov [es:di],ax 
 ;;;;;;;;;;;;;;;;;;;;;;;	
+	pop di
 	pop cx
 	pop si
 	pop ax
@@ -220,6 +224,7 @@ endp draw_snake
 ;this procedure gets:
 ;[bp+4] == offset of the snake head.
 ;[bp+6] == previous apple location.	
+;[bp+8] == offset of snake length.
 ;this procedure returns: 
 ;the new apple location.
 ;this procedure draw a random apple on the screen.
@@ -232,32 +237,41 @@ proc generate_random_apple
 	push bx
 	push si
 	push dx
+	push di
 ;;;;;;;;;;;;;;;;;;;;;;;	
 	mov si,[bp+4]			; the head location.
 	mov dx,[bp+6]			; the old random number.
+	mov di,[bp+8]			; offset of snake length.
 	cmp [word ptr si],dx	; checks if the head is in the apple location if he is generate new apple.
 	jnz exit_generate_random_apple
-return_random_apple:
 	mov ax, 40h
 	mov es, ax
 	mov ax, [es:6Ch]
-	and ax,11111101000b		; 2024 numbers rate.
+    mov bx, 42h     
+    mul bx          ; mult the timer counter by 42h.
+    mov dx, 0
+    mov bx, 4000    ; the random is between 0 to 4000.
+    div bx          ; div ax:bx.
+    mov ax, dx      ; ax = the remainder.
+    mov bx, 42h
+    mul bx          ; mult the timer counter by 42h.
+    mov dx, 0
+    mov bx, 4000    ; the random is between 0 to 4000.
+    div bx          ; div ax:bx.
+    mov ax, dx      ; ax = the remainder.
+    and ax, 0FFFEh  ; making the number a even number.
 	mov bx,ax
 	mov ax,0b800h
 	mov es,ax
 	mov ah,4				; color = red.
 	mov al,149				; shape = apple.
-	shl bx,1				; multiple the number by 2.
-	cmp bx,dx				; if the apple is in the same location as last one generate new number.
-	jz return_random_apple
-	cmp bx,(12*80+40)*4		; if the number is above 4000 go back to return_random_apple.
-	ja return_random_apple
 	mov [es:bx],ax
 	mov dx,bx
-	inc [snake_length]
-	mov [bp+6],dx			; move the random number to the stack segment.
+	inc [di]
 exit_generate_random_apple:
+	mov [bp+8],dx			; move the random number to the stack segment.
 ;;;;;;;;;;;;;;;;;;;;;;;	
+	pop di
 	pop dx
 	pop si
 	pop bx
@@ -265,7 +279,7 @@ exit_generate_random_apple:
 	pop ax
 	pop bp
 ;;;;;;;;;;;;;;;;;;;;;;;
-	ret 2
+	ret 4
 endp generate_random_apple
 ;this procedure doesn't get anything.
 ;this procedure doesn't return anything.
@@ -522,6 +536,7 @@ proc main_loop_continue
 	mov si,[bp+10]
 	mov ax,[bp+12]
 	call delay
+	push di
 	push dx						
 	push bx	
 	call generate_random_apple
@@ -599,7 +614,7 @@ left:
 	call move_left				; calls the procedure move left if al = a.
 	mov si,'a'					; the new key.
 	jmp main_lop
-; --------------------------------end main------------------------------------------;
+;--------------------------------end main------------------------------------------;
 exit:
 	call clear					; clear the screen at the end.
 	mov ax,4c00h
