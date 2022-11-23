@@ -16,7 +16,7 @@ proc clear
 	push cx
 ;;;;;;;;;;;;;;;;;;;;;;;
     mov cx,25*80*2	; number of times the loop runs.
-    xor bx,bx		; bx=0.
+    xor bx,bx		; bx = 0.
   	mov ah,0		; color = black.
 	mov al,' '		; shape = space.
 lop_clear:
@@ -51,10 +51,10 @@ proc move_left
 	push di
 	call delete_last_star		; delete last star.
 	mov ah,2					; color = green.
-	mov al,219					; shape.
-	mov cx,[di]
+	mov al,219					; shape = rectangle.
+	mov cx,[di]					; cx = snake length.
 	mov si,cx
-	add si,cx
+	add si,cx					; si = tail offset.
 loop_move_left:
 	mov di,[bx+si-2]
 	mov [bx+si],di
@@ -93,17 +93,17 @@ proc move_right
 	push bx
 	push di
 	call delete_last_star		; delete last star.
-	mov cx,[di]
+	mov cx,[di]					; cx = snake length.
 	mov si,cx
-	add si,cx
+	add si,cx					; si = tail offset.
 loop_move_right:
 	mov di,[bx+si-2]
 	mov [bx+si],di
 	sub si,2
 	loop loop_move_right
-	mov ah,2 ; color.
-	mov al,219 ; shape.
-	add [word ptr bx],2
+	mov ah,2 					; color = green.
+	mov al,219					; shape = rectangle.
+	add [word ptr bx],2			
 	mov di,[bx]
 	mov [es:di],ax 
 ;;;;;;;;;;;;;;;;;;;;;;;	
@@ -136,17 +136,17 @@ proc move_down
 	push bx
 	push di
 	call delete_last_star			; delete last star.
-	mov cx,[di]
+	mov cx,[di]						; cx = snake length.
 	mov si,cx
-	add si,cx
+	add si,cx						; si = tail offset.
 loop_move_down:
 	mov di,[bx+si-2]
 	mov [bx+si],di
 	sub si,2
 	loop loop_move_down
-	mov ah,2 ; color.
-	mov al,219 ; shape.
-	add [word ptr bx],80*2 
+	mov ah,2						; color = green.
+	mov al,219						; shape = rectangle.
+	add [word ptr bx],80*2 			; change the head location to the new position.
 	mov di,[bx]
 	mov [es:di],ax 
 ;;;;;;;;;;;;;;;;;;;;;;;	
@@ -179,18 +179,18 @@ proc move_up
 	push bx
 	push di
 	call delete_last_star			; delete last star.
-	mov cx,[di]
+	mov cx,[di]						; cx = snake length.
 	mov si,cx
-	add si,cx
+	add si,cx						; si = tail offset.
 loop_move_up:
 	mov di,[bx+si-2]
 	mov [bx+si],di
 	sub si,2
 	loop loop_move_up
 	mov bx,[bp+4]
-	mov ah,2 ; color.
-	mov al,219 ; shape.
-	sub [word ptr bx],80*2 
+	mov ah,2 						; color = green.
+	mov al,219 						; shape = rectangle.
+	sub [word ptr bx],80*2 			; change the head location to the new position.
 	mov di,[bx]
 	mov [es:di],ax 
 ;;;;;;;;;;;;;;;;;;;;;;;	
@@ -238,6 +238,7 @@ proc generate_random_apple
 	push si
 	push dx
 	push di
+	push cx
 ;;;;;;;;;;;;;;;;;;;;;;;	
 	mov si,[bp+4]			; the head location.
 	mov dx,[bp+6]			; the old random number.
@@ -247,30 +248,40 @@ proc generate_random_apple
 	mov ax, 40h
 	mov es, ax
 	mov ax, [es:6Ch]
+new_random:
+	mov cx,[di]				; cx = snake length.
     mov bx, 42h     
-    mul bx          ; mult the timer counter by 42h.
+    mul bx          		; mult the timer counter by 42h.
     mov dx, 0
-    mov bx, 4000    ; the random is between 0 to 4000.
-    div bx          ; div ax:bx.
-    mov ax, dx      ; ax = the remainder.
+    mov bx, 4000    		; the random is between 0 to 4000.
+    div bx          		; div ax:bx.
+    mov ax, dx      		; ax = the remainder.
     mov bx, 42h
-    mul bx          ; mult the timer counter by 42h.
+    mul bx          		; mult the timer counter by 42h.
     mov dx, 0
-    mov bx, 4000    ; the random is between 0 to 4000.
-    div bx          ; div ax:bx.
-    mov ax, dx      ; ax = the remainder.
-    and ax, 0FFFEh  ; making the number a even number.
+    mov bx, 4000    		; the random is between 0 to 4000.
+    div bx          		; div ax:bx.
+    mov ax, dx      		; ax = the remainder.
+    and ax, 0FFFEh  		; making the number an even number.
+	mov bx,cx
+	add bx,cx
+loop_apple:
+	cmp ax,[si+bx]
+	je new_random
+	sub bx,2
+	loop loop_apple			; check if the apple spawned on the snake.
 	mov bx,ax
 	mov ax,0b800h
 	mov es,ax
 	mov ah,4				; color = red.
 	mov al,149				; shape = apple.
-	mov [es:bx],ax
-	mov dx,bx
-	inc [di]
+	mov [es:bx],ax			; create the apple.
+	mov dx,bx				; move the apple location to dx.
+	inc [byte ptr di]		; increase snake length by 1.
 exit_generate_random_apple:
 	mov [bp+8],dx			; move the random number to the stack segment.
 ;;;;;;;;;;;;;;;;;;;;;;;	
+	pop cx
 	pop di
 	pop dx
 	pop si
@@ -473,25 +484,27 @@ proc check_hit
 	push ax
 	push cx
 	push si
+	push di
 ;;;;;;;;;;;;;;;;;;;;;;;
 	mov bx,[bp+4]	; offset of snake head.
 	mov si,[bp+6]	; offset of snake length.
-	xor cx,cx
-	add cx,[si]
+	xor cx,cx		; cx = 0.
+	add cx,[si]		; cx = snake length.
 	mov si,cx
-	add si,cx
+	add si,cx		; si = snake length * 2.
 loop_check_hit:
-	mov di,[bx+si]
-	cmp [bx],di
+	mov di,[bx+si]	; di = tail value.
+	cmp [bx],di		
 	je continue_check_hit
-	sub si,2
+	sub si,2		
 	loop loop_check_hit
 	jmp end_check_hit
 continue_check_hit:
-	mov ax,'q'
+	mov ax,'q'		; move ax 'q' if the snake hit himself.
 end_check_hit:
 	mov [bp+6],ax
 ;;;;;;;;;;;;;;;;;;;;;;;
+	pop di
 	pop si
 	pop cx
 	pop ax
@@ -500,15 +513,6 @@ end_check_hit:
 ;;;;;;;;;;;;;;;;;;;;;;;
 	ret 2
 endp check_hit
-;this procedure doesn't get anything.
-;this procedure doesn't return anything.
-;this procedure calls the starter procedures.
-proc main_lop_start
-	call clear 					; clear the screen.
-	call draw_snake 			; draw the snake.
-	call generate_first_apple	; draw the first apple.
-	ret
-endp main_lop_start
 ;this procedure gets:
 ;[bp+4] == offset of snake head.
 ;[bp+6] == last random number.
@@ -530,12 +534,12 @@ proc main_loop_continue
 	push ax
 	push di
 ;;;;;;;;;;;;;;;;;;;;;;;
-	mov bx,[bp+4]
-	mov dx,[bp+6]
-	mov di,[bp+8]
-	mov si,[bp+10]
-	mov ax,[bp+12]
-	call delay
+	mov bx,[bp+4]					; bx = offset of snake length.
+	mov dx,[bp+6]					; dx = last apple location.
+	mov di,[bp+8]					; di = offset of snake length.
+	mov si,[bp+10]					; si = last key pressed.
+	mov ax,[bp+12]					; ax = the key that was pressed.
+	call delay						
 	push di
 	push dx						
 	push bx	
@@ -553,8 +557,8 @@ proc main_loop_continue
 	push bx
 	call check_hit
 	pop ax
-	mov [bp+10],ax
-	mov [bp+12],dx
+	mov [bp+10],ax 					; move ax to the stack segment.
+	mov [bp+12],dx					; move the new random location to the stack segment.
 ;;;;;;;;;;;;;;;;;;;;;;;
 	pop di
 	pop ax
@@ -571,7 +575,9 @@ start:
 ;-----------------------------------main-----------------------------------;
 	mov ax,0b800h
 	mov es,ax
-	call main_lop_start
+	call clear 					; clear the screen.
+	call draw_snake 			; draw the snake at the start.
+	call generate_first_apple	; draw the first apple.
 	mov si,[key] 				; si = a.
 	mov dx,((12*80+40)*2)-20	; first apple location.
 main_lop:
